@@ -2,6 +2,7 @@ import passport from "passport";
 import passportLocal from "passport-local";
 import passportFacebook from "passport-facebook";
 import passportBearer from "passport-http-bearer";
+import passportBasic from "passport-http";
 import { find } from "lodash";
 
 // import { User, UserType } from '../models/User';
@@ -12,6 +13,7 @@ import { NativeError } from "mongoose";
 const LocalStrategy = passportLocal.Strategy;
 const FacebookStrategy = passportFacebook.Strategy;
 const BearerStrategy = passportBearer.Strategy;
+const BasicStrategy = passportBasic.BasicStrategy;
 
 passport.serializeUser<any, any>((req, user, done) => {
     done(undefined, user);
@@ -34,7 +36,7 @@ passport.use(new LocalStrategy({ usernameField: "email" }, (email, password, don
         user.comparePassword(password, (err: Error, isMatch: boolean) => {
             if (err) { return done(err); }
             if (isMatch) {
-                
+
                 return done(undefined, user);
             }
             return done(undefined, false, { message: "Invalid email or password." });
@@ -62,7 +64,18 @@ passport.use(new LocalStrategy({ usernameField: "email" }, (email, password, don
     User.findOne({ token: token }, function (err: NativeError, user: UserDocument) {
         if (err) { return done(err); }
         if (!user) { return done(null, false); }
-        return done(null, user, { scope: "read" });
+        return done(null, user, { scope: "all" });
+      });
+ }));
+
+ passport.use(new BasicStrategy((username: string, password:string, done) => {  
+    User.findOne({ email: username }, function (err: NativeError, user: UserDocument) {
+        if (err) { return done(err); }
+        if (!user) { return done(null, false); }
+        user.comparePassword(password, (err: NativeError, isMatch:boolean) => {
+            if(isMatch) return done(null, user);
+            else return done(null, false);
+        });
       });
  }));
 

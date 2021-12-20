@@ -14,6 +14,7 @@ import { MONGODB_URI, SESSION_SECRET } from "./util/secrets";
 // Controllers (route handlers)
 import storyController from "./controllers/story";
 import userController from "./controllers/user";
+import token from "./controllers/oauth";
 
 // API keys and Passport configuration
 import * as passportConfig from "./config/passport";
@@ -80,5 +81,6 @@ app.use((req, res, next) => {
  */
 app.use("/story", storyController);
 app.use("/user", userController);
+app.post("/oauth/token", token);
 
 export default app;
