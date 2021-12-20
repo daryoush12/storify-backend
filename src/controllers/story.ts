@@ -1,6 +1,7 @@
 import { Story, StoryDocument } from "../models/Story";
 import { Router } from "express";
 import { Request, Response } from "express";
+import * as passportConfig from "../config/passport";
 
 const router = Router();
 

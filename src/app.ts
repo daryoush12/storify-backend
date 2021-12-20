@@ -13,6 +13,7 @@ import { MONGODB_URI, SESSION_SECRET } from "./util/secrets";
 
 // Controllers (route handlers)
 import storyController from "./controllers/story";
+import userController from "./controllers/user";
 
 // API keys and Passport configuration
 import * as passportConfig from "./config/passport";
@@ -45,7 +46,7 @@ app.use(session({
     store: new MongoStore({
         mongoUrl,
         mongoOptions: {
-            autoReconnect: true
+            autoReconnect: true,
         }
     })
 }));
@@ -78,5 +79,6 @@ app.use((req, res, next) => {
  * API
  */
 app.use("/story", storyController);
+app.use("/user", userController);
 
 export default app;
