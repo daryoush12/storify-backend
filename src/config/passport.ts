@@ -3,17 +3,22 @@ import passportLocal from "passport-local";
 import passportFacebook from "passport-facebook";
 import passportBearer from "passport-http-bearer";
 import passportBasic from "passport-http";
+import passportOAuth2ClientPassword from "passport-oauth2-client-password";
 import { find } from "lodash";
 
 // import { User, UserType } from '../models/User';
 import { User, UserDocument } from "../models/User";
+import {Token, TokenDocument} from "../models/Token";
 import { Request, Response, NextFunction } from "express";
 import { NativeError } from "mongoose";
+import { SESSION_SECRET } from "../util/secrets";
+import { uid } from "../util/uid";
+
 
 const LocalStrategy = passportLocal.Strategy;
 const FacebookStrategy = passportFacebook.Strategy;
-const BearerStrategy = passportBearer.Strategy;
 const BasicStrategy = passportBasic.BasicStrategy;
+const BearerStrategy = passportBearer.Strategy;
 
 passport.serializeUser<any, any>((req, user, done) => {
     done(undefined, user);
@@ -60,20 +65,23 @@ passport.use(new LocalStrategy({ usernameField: "email" }, (email, password, don
  *       - Else create a new account.
  */
 
- passport.use(new BearerStrategy((token, done) => {
-    User.findOne({ token: token }, function (err: NativeError, user: UserDocument) {
+passport.use(new BearerStrategy((token:string, done) => {  
+    Token.findOne({ code: token }, function (err:NativeError, token:TokenDocument) {
         if (err) { return done(err); }
-        if (!user) { return done(null, false); }
-        return done(null, user, { scope: "all" });
+        if (!token) { return done(null, false); }
+        return done(null, token, { scope: "all" });
       });
- }));
+}));
+
 
  passport.use(new BasicStrategy((username: string, password:string, done) => {  
     User.findOne({ email: username }, function (err: NativeError, user: UserDocument) {
         if (err) { return done(err); }
         if (!user) { return done(null, false); }
         user.comparePassword(password, (err: NativeError, isMatch:boolean) => {
-            if(isMatch) return done(null, user);
+            if(isMatch){
+                return done(null, user);
+            }
             else return done(null, false);
         });
       });
@@ -95,11 +103,11 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
  */
 export const isAuthorized = (req: Request, res: Response, next: NextFunction) => {
     const provider = req.path.split("/").slice(-1)[0];
-
-    const user = req.user as UserDocument;
-    if (find(user.tokens, { kind: provider })) {
-        next();
-    } else {
-        res.send("You need to be authorized to access this endpoint");
-    }
+    const tokenCode = req.headers["authorization"];
+    
+    Token.findOne({code:tokenCode}, function (err:NativeError, token:TokenDocument) {
+        if(!token) {
+            res.send("You need to be authorized to access this endpoint");
+        }else next();
+    }); 
 };

@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { User, UserDocument, AuthToken } from "../models/User";
+import {Token, TokenDocument} from "../models/Token";
 import { Request, Response, NextFunction } from "express";
 import { IVerifyOptions } from "passport-local";
 import { WriteError } from "mongodb";
@@ -7,15 +8,16 @@ import { body, check, validationResult } from "express-validator";
 import passport from "passport";
 import "../config/passport";
 import { NativeError } from "mongoose";
+import {uid} from "../util/uid";
 
 const router = Router();
 
-export function register (req: Request, res: Response): void {
-    const userParam: UserDocument = req.body;
-    const newStory = new User(userParam);
-    newStory.save();
-
-    res.status(200).send("Registration successful");
+export function profile (req: Request, res: Response): void {
+    User.findOne({ id: req.params.id }, function (err:NativeError, user:UserDocument) {
+        if (err) { req.flash("errors", {msg: err.message}); }
+        if (!user) { res.send("Profile not found"); }
+        res.send(user);
+    });
 }
 
 export const login = async (req: Request, res: Response, next:NextFunction): Promise<void> => {
@@ -30,19 +32,22 @@ export const login = async (req: Request, res: Response, next:NextFunction): Pro
         res.send(errors.array());
     }
 
-    passport.authenticate("local", (err: Error, user: UserDocument, info: IVerifyOptions) => {
-        if (err) { next(err); }
-        if (!user) {
-            req.flash("errors", {msg: info.message});
-        }
-        req.logIn(user, (err) => {
-            if (err) { next(err); }
-            req.flash("success", { msg: "Success! You are logged in." });
-            user.tokens.push();
-            res.send(user);
+    const logins = req.body as UserDocument;
+
+    User.findOne({email: logins.email}, function(err:NativeError, user:UserDocument){
+        if(err) res.send("Account was not found by email");
+
+        user.comparePassword(logins.password, function(err:NativeError, isMatch:boolean) {
+            if(!isMatch) res.send("Password was incorrect");
+
+            const tokenDoc = {token: uid(24), type: "Bearer", user:user};
+            const token = new Token(tokenDoc);
+            token.save();
+            res.send(tokenDoc);
         });
-    })(req, res, next);
+    });
 };
+
 
 export const signup = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     await check("email", "Email is not valid").isEmail().run(req);
@@ -56,16 +61,13 @@ export const signup = async (req: Request, res: Response, next: NextFunction): P
         req.flash("errors", errors.array());
         res.send(errors.array());
     }
-
-    const user = new User({
-        email: req.body.email,
-        password: req.body.password
-    });
+    const userParam: UserDocument = req.body;
+    const user = new User({...userParam});
 
     User.findOne({ email: req.body.email }, (err: NativeError, existingUser: UserDocument) => {
         if (err) { next(err); }
         if (existingUser) {
-            req.flash("errors", { msg: "Account with that email address already exists." });
+           // req.flash("errors", { msg: "Account with that email address already exists." });
             res.send("Account with that email address already exists.");
         }
         user.save((err) => {
@@ -82,6 +84,7 @@ export const signup = async (req: Request, res: Response, next: NextFunction): P
 
 router.post("/login", login);
 router.post("/register", signup);
+router.get("/me", profile);
 
 export default router;
 

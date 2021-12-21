@@ -2,18 +2,22 @@
 import { Schema } from "mongoose";
 import mongoose from "mongoose";
 import { ObjectID } from "mongodb";
+import { UserDocument } from "./User";
 
 export type TokenDocument = mongoose.Document & {  
-    token: string;
+    code: string;
     type: string;
-    user: string;
+    user: UserDocument;
 };
 
 export const tokenSchema = new mongoose.Schema<TokenDocument>({
-    title: String,
-    chapters: Array,
+    code: String,
+    type:String,
     user: ObjectID,
 }, {timestamps: true });
 
-export const Story = mongoose.model<TokenDocument>("Story", tokenSchema)
-.createIndexes({expireAfterSeconds: 3600});
+//Expire tokens after 3600 seconds babyyy
+tokenSchema.set("expireAfterSeconds", 3600);
+
+export const Token = mongoose.model<TokenDocument>("Token", tokenSchema);
+

@@ -12,13 +12,19 @@ server.grant(grant.code(function(client:string, redirectURI:string, user: UserDo
     const token: AuthToken = {accessToken: code, kind: "Bearer"};
     user.tokens.push(token);
     user.save(function(err: NativeError) {
-      if (err) { return done(err); }
+      if (err) { done(err); }
       return done(null, code);
     });
   }));
 
+  server.serializeClient(function(client, done) {
+    return done(null, client.id);
+  });
+  
+ 
+
 const token = [
-    passport.authenticate(["basic", "oauth2-client-password"], {session: false}), 
+    passport.authenticate(["basic"], {session: false}), 
     server.token(), 
     server.errorHandler()
 ];
