@@ -40,7 +40,7 @@ export const login = async (req: Request, res: Response, next:NextFunction): Pro
         user.comparePassword(logins.password, function(err:NativeError, isMatch:boolean) {
             if(!isMatch) res.send("Password was incorrect");
 
-            const tokenDoc = {token: uid(24), type: "Bearer", user:user};
+            const tokenDoc = {code: uid(24), type: "Bearer", user:user};
             const token = new Token(tokenDoc);
             token.save();
             res.send(tokenDoc);
