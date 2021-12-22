@@ -1,9 +1,7 @@
 import { Story, StoryDocument } from "../models/Story";
-import { response, Router } from "express";
+import { Router } from "express";
 import { Request, Response } from "express";
 import {MODIFY_FAIL, CREATION_SUCCESS, ID_FAIL} from "../constants/storymessages";
-import { RequestError } from "request-promise/errors";
-import { NativeError } from "mongoose";
 
 
 const router = Router();
@@ -16,13 +14,14 @@ const router = Router();
  * @param req 
  * @param res 
  */
-export function createStory (req: Request, res: Response): void {
+export const createStory = async(req: Request, res: Response, ): Promise<void> => {
     const storyParam: StoryDocument = req.body;
-    const newStory = new Story(storyParam);
-    newStory.save();
+    if(!storyParam) res.send("Bad param");
 
-    res.status(200).send(CREATION_SUCCESS);
-}
+    const newStory = new Story(storyParam);
+    await newStory.save();
+    res.send(CREATION_SUCCESS);
+};
 
 export function health (req: Request, res: Response): void {
 
@@ -51,8 +50,8 @@ export function deleteStory (req: Request, res:Response):void {
 
 router.post("/create", createStory);
 router.get("/health", health);
-router.put("/modify/", editStory);
-router.delete("/delete/", deleteStory);
+router.put("/modify", editStory);
+router.delete("/delete", deleteStory);
 
 export default router;
 

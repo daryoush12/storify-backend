@@ -103,13 +103,13 @@ export const isAuthenticated = (req: Request, res: Response, next: NextFunction)
  */
 export const isAuthorized = (req: Request, res: Response, next: NextFunction) => {
     const provider = req.path.split("/").slice(-1)[0];
-    const tokenCode = req.headers["authorization"].split(" ")[0];
+    const tokenCode = req.headers["authorization"].split(" ")[1];
 
     if(!tokenCode) res.send("Bearer token not provided");
     
     Token.findOne({code:tokenCode}, function (err:NativeError, token:TokenDocument) {
         if(err) res.send(err.message);
-        if(!token) res.send("You need to be authorized to access this endpoint");
-        next();
+        if (token) next();
+        else res.send("You need to be authorized to access this endpoint");
     }); 
 };
